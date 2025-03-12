@@ -41,24 +41,6 @@
 		<input type="date" id="startDate"> <input type="date"
 			id="endDate">
 
-		<!-- 📌 진행 상태 필터 -->
-		<select id="searchStatus">
-			<option value="">진행 상태</option>
-			<option value="진행중">진행중</option>
-			<option value="마감">마감</option>
-		</select>
-
-		<!-- 🔄 정렬 방식 -->
-		<select id="sortOrder">
-			<option value="">정렬 방식 선택</option>
-			<option value="regDate">등록일순</option>
-			<option value="closeDate">마감일순</option>
-			<option value="price">지원금액순</option>
-		</select>
-
-
-
-
 
 		<!-- 🔍 검색 버튼 -->
 		<button id="searchBtn">검색</button>
@@ -99,7 +81,6 @@ const regionCodes = {
 	};
 
 </script>
-
 
 
 	<!-- 요청 URL 생성 -->
@@ -242,7 +223,7 @@ function renderGrantList(grants) {
 
 	<!-- 진행,마감 구분하기 -->
 	<script>
-function getStatus(applEdDt) {
+	function getStatus(applEdDt) {
     let today = new Date();
     let endDate = new Date(applEdDt);
 
@@ -253,8 +234,6 @@ function getStatus(applEdDt) {
     return today <= endDate ? "진행중" : "마감";
 }
 </script>
-
-
 
 	<!-- 첫 페이지 기본값 호출 -->
 	<script>
