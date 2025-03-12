@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>정부 지원금 목록</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" type="text/css" href="/css/grant.css">
+</head>
+<body>
+
+	<h1>정부 지원금 목록</h1>
+
+	<!-- 🔍 검색 및 세부 필터 -->
+	<div class="filter-container">
+		<input type="text" id="searchKeyword" placeholder="검색어 입력">
+
+		<!-- 🌍 지역 필터 -->
+		<select id="searchArea">
+			<option value="전국">전국</option>
+			<option value="서울">서울</option>
+			<option value="부산">부산</option>
+			<option value="대구">대구</option>
+			<option value="인천">인천</option>
+			<option value="광주">광주</option>
+			<option value="대전">대전</option>
+			<option value="울산">울산</option>
+			<option value="세종">세종</option>
+			<option value="경기">경기</option>
+			<option value="강원">강원</option>
+			<option value="충북">충북</option>
+			<option value="충남">충남</option>
+			<option value="전북">전북</option>
+			<option value="전남">전남</option>
+			<option value="경북">경북</option>
+			<option value="경남">경남</option>
+			<option value="제주">제주</option>
+		</select>
+
+
+		<!-- 📅 신청 기간 필터 -->
+		<input type="date" id="startDate"> <input type="date"
+			id="endDate">
+
+		<!-- 📌 진행 상태 필터 -->
+		<select id="searchStatus">
+			<option value="">진행 상태</option>
+			<option value="진행중">진행중</option>
+			<option value="마감">마감</option>
+		</select>
+
+		<!-- 🔄 정렬 방식 -->
+		<select id="sortOrder">
+			<option value="">정렬 방식 선택</option>
+			<option value="regDate">등록일순</option>
+			<option value="closeDate">마감일순</option>
+			<option value="price">지원금액순</option>
+		</select>
+
+
+
+
+
+		<!-- 🔍 검색 버튼 -->
+		<button id="searchBtn">검색</button>
+	</div>
+
+
+	<!-- 🔹 지원금 목록 카드뷰 -->
+	<div class="card-container" id="grantList">
+		<!-- JavaScript에서 지원금 데이터가 동적으로 삽입됨 -->
+	</div>
+
+	<!-- 🔢 페이지네이션 -->
+	<ul class="pagination" id="pagination"></ul>
+
+
+
+	<!-- 지역 코드 매핑 -->
+	<script>
+const regionCodes = {
+	    "전국": "00",
+	    "서울": "11",
+	    "부산": "21",
+	    "대구": "22",
+	    "인천": "23",
+	    "광주": "24",
+	    "대전": "25",
+	    "울산": "26",
+	    "세종": "29",
+	    "경기": "31",
+	    "강원": "32",
+	    "충북": "33",
+	    "충남": "34",
+	    "전북": "35",
+	    "전남": "36",
+	    "경북": "37",
+	    "경남": "38",
+	    "제주": "39"
+	};
+
+</script>
+
+
+
+	<!-- 요청 URL 생성 -->
+	<script>
+function buildApiUrl(page = 1) {
+    let baseUrl = "https://apis.data.go.kr/1390000/youngV2/policyListV2";
+    let params = [];
+
+    // ✅ 고정된 필수 파라미터
+    params.push("typeDv=json");
+    params.push("serviceKey=lwFN%2B9DgtdnDkUuQpxCaemhEBXNKBw%2FEIeII2WsOlInuroAHa9InabfXhyR365jieyuEEzrb2QYAHP3b3AlrFA%3D%3D");
+    params.push(`rowCnt=${itemsPerPage}`);
+    params.push(`cp=${page}`);
+
+    // ✅ 동적 추가 파라미터
+    let keyword = $("#searchKeyword").val();
+    let area = $("#searchArea").val();
+    let startDate = $("#startDate").val();
+    let endDate = $("#endDate").val();
+    let status = $("#searchStatus").val();
+    let minPrice = $("#minPrice").val();
+    let maxPrice = $("#maxPrice").val();
+    let sortOrder = $("#sortOrder").val();
+
+    if (keyword) params.push(`search_keyword=${encodeURIComponent(keyword)}`);
+
+    // ✅ 지역 선택값을 지역 코드로 변환하여 추가
+    if (area && regionCodes[area]) {
+        params.push(`search_area1=${regionCodes[area]}`);
+    }
+
+    if (startDate) params.push(`sd=${startDate}`);
+    if (endDate) params.push(`ed=${endDate}`);
+    if (status) params.push(`search_status=${encodeURIComponent(status)}`);
+    if (minPrice) params.push(`minPrice=${minPrice}`);
+    if (maxPrice) params.push(`maxPrice=${maxPrice}`);
+    if (sortOrder) params.push(`sort=${sortOrder}`);
+
+    let finalUrl = `${baseUrl}?${params.join("&")}`;
+    console.log("📌 API 요청 URL:", finalUrl);
+
+    return finalUrl;
+}
+
+
+</script>
+
+
+	<!-- API 호출 -->
+	<script>
+    let currentPage = 1; // 현재 페이지 저장
+    let itemsPerPage = 10; // 한 페이지당 개수
+
+    function fetchGrants(page = 1) {
+        currentPage = page; // 현재 페이지 저장
+        let apiUrl = buildApiUrl(page); // ✅ 동적으로 URL 생성
+
+        $.ajax({
+            url: apiUrl,
+            type: "GET",
+            dataType: "json",
+            success: function(response) {
+                console.log("📌 API 응답 데이터:", response);
+                renderGrantList(response.policy_list);
+                let totalItems = response.policy_paging?.totalCount || 0;
+                let totalPages = Math.ceil(totalItems / itemsPerPage);
+                renderPagination(totalPages, page);
+            },
+            error: function() {
+                alert("데이터를 불러오는 중 오류가 발생했습니다.");
+            }
+        });
+    }
+
+</script>
+
+	<!-- 리스트 렌더링 -->
+	<script>
+function renderGrantList(grants) {
+    let html = "";
+    if (grants && grants.length > 0) {
+        grants.forEach(function(grant) {
+            let status = getStatus(grant.applEdDt); // ✅ 진행 상태 계산
+
+            html += `
+                <div class="card">
+                    <h3>${grant.title || "제목 없음"}</h3>
+                    <p><strong>대상:</strong> ${grant.eduTarget || "대상 정보 없음"}</p>
+                    <p><strong>신청 기간:</strong> ${grant.applStDt || "기간 없음"} ~ ${grant.applEdDt || "기간 없음"}</p>
+                    <p><strong>진행 상태:</strong> <span class="${status === '진행중' ? 'ongoing' : 'closed'}">${status}</span></p>
+                    <p><a href="/grants/detail/${grant.seq}">상세보기</a></p>
+                </div>
+            `;
+        });
+    } else {
+        html = "<p>⚠ 데이터가 없습니다.</p>";
+    }
+
+    $("#grantList").html(html);
+}
+
+</script>
+
+	<!-- 페이지네이션 -->
+	<script>
+    function renderPagination(totalPages, currentPage) {
+        let paginationHtml = "";
+
+        if (totalPages > 1) {
+            // ⏮ 첫 페이지 이동 버튼
+            if (currentPage > 1) {
+                paginationHtml += `<li onclick="changePage(1)">«</li>`;
+            }
+
+            // 🔢 현재 페이지 기준 앞뒤 2개 페이지만 표시
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationHtml += `<li class="active">${i}</li>`;
+                } else {
+                    paginationHtml += `<li onclick="changePage(${i})">${i}</li>`;
+                }
+            }
+
+            // ⏭ 마지막 페이지 이동 버튼
+            if (currentPage < totalPages) {
+                paginationHtml += `<li onclick="changePage(${totalPages})">»</li>`;
+            }
+        }
+
+        $("#pagination").html(paginationHtml); // 기존 페이지네이션 제거 후 새로 렌더링
+    }
+
+    function changePage(page) {
+        fetchGrants(page); // ✅ 페이지 변경 시 API 호출
+    }
+</script>
+
+	<!-- 진행,마감 구분하기 -->
+	<script>
+function getStatus(applEdDt) {
+    let today = new Date();
+    let endDate = new Date(applEdDt);
+
+    if (!applEdDt || isNaN(endDate)) {
+        return "정보 없음";
+    }
+
+    return today <= endDate ? "진행중" : "마감";
+}
+</script>
+
+
+
+	<!-- 첫 페이지 기본값 호출 -->
+	<script>
+$(document).ready(function() {
+    $("#searchBtn").click(function() {
+        fetchGrants(1); // ✅ 검색 버튼 클릭 시 1페이지부터 새로 불러오기
+    });
+
+    $("#sortOrder").change(function() {
+        fetchGrants(1); // ✅ 정렬 변경 시 첫 페이지부터 다시 불러오기
+    });
+
+    fetchGrants(1); // ✅ 페이지 로딩 시 기본 데이터 불러오기
+});
+
+</script>
+
+
+
+
+
+
+
+
+</body>
+</html>

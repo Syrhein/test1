@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>지원금 상세 정보</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>지원금 상세 정보</h1>
+    <div>
+        <p><strong>지원금명:</strong> <span id="grantName"></span></p>
+        <p><strong>지원 대상:</strong> <span id="grantTarget"></span></p>
+        <p><strong>신청 기간:</strong> <span id="grantPeriod"></span></p>
+        <p><strong>내용:</strong> <span id="grantContent"></span></p>
+    </div>
+
+<script>
+    $(document).ready(function() {
+        let seq = "[[${seq}]]";  // Thymeleaf에서 전달된 seq 값
+        console.log("📌 상세 페이지 seq 값:", seq);
+
+        $.ajax({
+            url: "https://apis.data.go.kr/1390000/youngV2/policyViewV2?typeDv=json&serviceKey=lwFN%2B9DgtdnDkUuQpxCaemhEBXNKBw%2FEIeII2WsOlInuroAHa9InabfXhyR365jieyuEEzrb2QYAHP3b3AlrFA%3D%3D&seq=" + seq,
+            type: "GET",
+            dataType: "json",
+            success: function(response) {
+                console.log("📌 상세 API 응답 데이터:", response);
+
+                // ✅ 올바른 데이터 경로로 수정
+                let grant = response.policy_result;  // policy_result 내부에 데이터가 있음
+
+                // ✅ 각 데이터가 존재하는지 확인 후 업데이트
+                $("#grantName").text(grant.title || "제목 없음");
+                $("#grantTarget").text(grant.eduTarget || "대상 정보 없음");
+                $("#grantPeriod").text((grant.applStDt || "기간 없음") + " ~ " + (grant.applEdDt || "기간 없음"));
+                $("#grantContent").text(grant.contents || "내용 없음");
+            },
+            error: function() {
+                alert("상세 정보를 불러오는 중 오류가 발생했습니다.");
+            }
+        });
+    });
+</script>
+
+
+    <a href="/grants">목록으로 돌아가기</a>
+</body>
+</html>
